@@ -1,84 +1,19 @@
-#include "../../include/core/Factory.h"
-#include "../../common/AMFFactory.h"
-#include "../../include/core/Buffer.h"
-#include <gtest/gtest.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <chrono>
-#include <ctime>  
-using namespace std;
-using namespace amf;
-
-#define CL_TARGET_OPENCL_VERSION 120
-
-struct TestsInformation {
-	uint32_t tests_ran = 0;
-};
-
-struct AllocationMetrics {
-	uint32_t totalAllocated = 0;
-	uint32_t totalFreed = 0;
-	uint32_t totalPointersMade = 0;
-	uint32_t totalPointersDestroyed = 0;
-
-	uint32_t CurrentUsage() {
-		return totalAllocated - totalFreed;
-	}
-
-	uint32_t CurrentPointers() {
-		return totalPointersMade - totalPointersDestroyed;
-	}
-};
-
-static TestsInformation testsInfo;
-static AllocationMetrics memoryUsage;
-
-void* operator new(size_t size) {
-	memoryUsage.totalAllocated += size;
-	memoryUsage.totalPointersMade++;
-
-	return malloc(size);
-}
-
-void operator delete(void* memory, size_t size) {
-	memoryUsage.totalFreed += size;
-	memoryUsage.totalPointersDestroyed++;
-
-	free(memory);
-}
-
-bool has_suffix(const string& str, const string& suffix)
-{
-	return str.size() >= suffix.size() &&
-		str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
+#include "autotests.h"
 
 struct Smoke : testing::Test {
 	AMFFactoryHelper helper;
 	AMFContextPtr context1;
 	AMFComputeFactoryPtr oclComputeFactory;
 	AMFFactory* factory;
-	ofstream logFile;
 	int deviceCount;
+	chrono::time_point<chrono::system_clock> startTime;
 
 	static void SetUpTestCase() {
-		ofstream logFile;
-		logFile.open("out.log", ios::out | ios::app);
-		logFile
-			<< "|--------------------------------------------------------|" << endl
-			<< "                     Smoke group started" << endl
-			<< "|--------------------------------------------------------|" << endl;
-		logFile.close();
+		initiateTestSuiteLog("Smoke");
 	}
 
 	static void TearDownTestCase() {
-		ofstream logFile;
-		logFile.open("out.log", ios::out | ios::app);
-		logFile 
-			<< endl 
-			<< endl;
-		logFile.close();
+		terminateTestSuiteLog();
 	}
 
 	Smoke() {
@@ -96,15 +31,7 @@ struct Smoke : testing::Test {
 		g_AMFFactory.GetTrace()->SetWriterLevel(AMF_TRACE_WRITER_CONSOLE, AMF_TRACE_TRACE);
 		g_AMFFactory.GetTrace()->SetWriterLevelForScope(AMF_TRACE_WRITER_CONSOLE, L"scope2", AMF_TRACE_TRACE);
 		g_AMFFactory.GetTrace()->SetWriterLevelForScope(AMF_TRACE_WRITER_CONSOLE, L"scope2", AMF_TRACE_ERROR);
-		logFile.open("out.log", ios::out | ios::app);
-		auto startTime = chrono::system_clock::now();
-		time_t convertedTime = chrono::system_clock::to_time_t(startTime);
-		logFile 
-			<< "Time: " << std::ctime(&convertedTime) << endl
-			<< "Test case: "<<::testing::UnitTest::GetInstance()->current_test_info()->name() << endl
-			<< "Before test:" << endl
-			<< "Memory usage - " << memoryUsage.CurrentUsage() << endl
-			<< "Pointers count - " << memoryUsage.CurrentPointers() << endl;
+		startTime = initiateTestLog();
 	}
 
 	~Smoke() {
@@ -112,12 +39,7 @@ struct Smoke : testing::Test {
 		oclComputeFactory.Release();
 		g_AMFFactory.Terminate();
 		helper.Terminate();
-		logFile 
-			<< "After test:" << endl
-			<< "Memory usage - " << memoryUsage.CurrentUsage() << endl
-			<< "Pointers count - " << memoryUsage.CurrentPointers() << endl
-			<< "----------------------------------------------------------" << endl;
-		logFile.close();
+		terminateTestLog(startTime);
 	}
 };
 
@@ -142,6 +64,7 @@ TEST_F(Smoke, traceW_error) {
 }
 
 TEST_F(Smoke, kernel_compute_complex) {
+	g_AMFFactory.GetFactory()->SetCacheFolder(L"./cache");
 
 	amf::AMFPrograms* pPrograms;
 	factory->GetPrograms(&pPrograms);
