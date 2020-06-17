@@ -122,11 +122,11 @@ struct Smoke : testing::Test {
 };
 
 TEST_F(Smoke, set_cache_folder) {
-	g_AMFFactory.GetFactory()->SetCacheFolder(L"Hello");
-	EXPECT_STREQ(g_AMFFactory.GetFactory()->GetCacheFolder(), L"Hello");
+	g_AMFFactory.GetFactory()->SetCacheFolder(L"cache");
+	EXPECT_STREQ(g_AMFFactory.GetFactory()->GetCacheFolder(), L"cache");
 }
 
-TEST_F(Smoke, release) {
+TEST_F(Smoke, release_null_check) {
 	context1.Release();
 	EXPECT_EQ(context1, (amf::AMFContextPtr)NULL);
 }
@@ -141,13 +141,78 @@ TEST_F(Smoke, traceW_error) {
 	EXPECT_TRUE(has_suffix(log, (string)"Error message"));
 }
 
-TEST_F(Smoke, AMF_runtime) {
-	HMODULE hAMFDll = LoadLibraryW(AMF_DLL_NAME);
-	AMFQueryVersion_Fn queryVersion = (AMFQueryVersion_Fn)GetProcAddress(hAMFDll,
-		AMF_QUERY_VERSION_FUNCTION_NAME);
-	amf_uint64 version = 0;
-	AMF_RESULT res = queryVersion(&version);
-	AMFInit_Fn init = (AMFInit_Fn)GetProcAddress(hAMFDll, AMF_INIT_FUNCTION_NAME);
-	AMFFactory* pFactory(nullptr);
-	AMF_RESULT initRes = init(version, &pFactory);
+TEST_F(Smoke, kernel_compute_complex) {
+
+	amf::AMFPrograms* pPrograms;
+	factory->GetPrograms(&pPrograms);
+
+	amf::AMF_KERNEL_ID kernel = 0;
+	const char* kernel_src = "\n" \
+		"__kernel void square2( __global float* input, __global float* output, \n" \
+		" const unsigned int count) {            \n" \
+		" int i = get_global_id(0);              \n" \
+		" if(i < count) \n" \
+		" output[i] = input[i] * input[i]; \n" \
+		"}                     \n";
+	pPrograms->RegisterKernelSource(&kernel, L"kernelIDName", "square2", strlen(kernel_src), (amf_uint8*)kernel_src, NULL);
+
+	for (int i = 0; i < deviceCount; ++i)
+	{
+		AMF_RESULT res;
+		amf::AMFComputeDevicePtr pComputeDevice;
+		oclComputeFactory->GetDeviceAt(i, &pComputeDevice);
+		pComputeDevice->GetNativeContext();
+
+		amf::AMFComputePtr pCompute;
+		pComputeDevice->CreateCompute(nullptr, &pCompute);
+
+		amf::AMFComputeKernelPtr pKernel;
+		res = pCompute->GetKernel(kernel, &pKernel);
+
+		amf::AMFBuffer* input = NULL;
+		amf::AMFBuffer* output = NULL;
+
+		amf::AMFContextPtr context;
+		factory->CreateContext(&context);
+		//context->InitOpenCLEx(pComputeDevice.GetPtr());
+		context->InitOpenCL(pCompute->GetNativeCommandQueue());
+
+		res = context->AllocBuffer(amf::AMF_MEMORY_HOST, 1024 * sizeof(float), &input);
+		res = context->AllocBuffer(amf::AMF_MEMORY_OPENCL, 1024 * sizeof(float), &output);
+
+		float* inputData = static_cast<float*>(input->GetNative());
+		float* expectedData = new float[1024];
+		for (int k = 0; k < 1024; k++)
+		{
+			inputData[k] = rand() / 50.00;
+			expectedData[k] = inputData[k] * inputData[k];
+		}
+
+		input->Convert(amf::AMF_MEMORY_OPENCL);
+
+		res = pKernel->SetArgBuffer(1, output, amf::AMF_ARGUMENT_ACCESS_WRITE);
+		res = pKernel->SetArgBuffer(0, input, amf::AMF_ARGUMENT_ACCESS_READ);
+		res = pKernel->SetArgInt32(2, 1024);
+
+		amf_size sizeLocal[3] = { 1024, 0, 0 };
+		amf_size sizeGlobal[3] = { 1024, 0, 0 };
+		amf_size offset[3] = { 0, 0, 0 };
+
+		pKernel->GetCompileWorkgroupSize(sizeLocal);
+
+		pKernel->Enqueue(1, offset, sizeGlobal, sizeLocal);
+		pCompute->FlushQueue();
+		pCompute->FinishQueue();
+		float* outputData2 = NULL;
+		res = output->MapToHost((void**)&outputData2, 0, 1024 * sizeof(float), true);
+
+
+		for (int k = 0; k < 1024; k++)
+		{
+			EXPECT_LE(abs(expectedData[k] - outputData2[k]), 0.01);
+		}
+
+		output->Convert(amf::AMF_MEMORY_HOST);
+		float* outputData = static_cast<float*>(output->GetNative());
+	}
 }
