@@ -63,6 +63,11 @@ TEST_F(Smoke, traceW_error) {
 	EXPECT_TRUE(has_suffix(log, (string)"Error message"));
 }
 
+TEST_F(Smoke, rect_test) {
+	AMFRect rect{ 0, 1, 1, 0 };
+	EXPECT_EQ(rect.Height(), -rect.Width());
+	EXPECT_EQ(rect.Height(), -1);
+}
 TEST_F(Smoke, kernel_compute_complex) {
 	g_AMFFactory.GetFactory()->SetCacheFolder(L"./cache");
 
