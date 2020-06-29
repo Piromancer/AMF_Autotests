@@ -75,16 +75,246 @@ TEST_F(Smoke, get_compute) {
 	EXPECT_TRUE(compute);
 }
 
-TEST_F(Smoke, get_device_at) {
+TEST_F(Smoke, computeFactory_getDeviceCount) {
+	EXPECT_EQ(oclComputeFactory->GetDeviceCount(), 1);
+}
+
+TEST_F(Smoke, computeFactory_getDeviceAt) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
-	amf::AMFComputePtr pCompute;
-	device->CreateCompute(nullptr, &pCompute);
 	EXPECT_TRUE(device);
+}
+
+TEST_F(Smoke, computeFactory_getDeviceAt_negative) {
+	AMFComputeDevice* device;
+	EXPECT_ANY_THROW(oclComputeFactory->GetDeviceAt(1000, &device));
+}
+
+TEST_F(Smoke, deviceCompute_getNativePlatform) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	EXPECT_TRUE(device->GetNativePlatform());
+}
+
+TEST_F(Smoke, deviceCompute_getNativeDeviceID) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	EXPECT_TRUE(device->GetNativeDeviceID());
+}
+
+TEST_F(Smoke, deviceCompute_getNativeContext) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	EXPECT_TRUE(device->GetNativeContext());
+}
+
+TEST_F(Smoke, deviceCompute_createCompute) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateCompute(nullptr, &pCompute);
 	EXPECT_TRUE(pCompute);
 }
 
-TEST_F(Smoke, get_device_at_negative) {
+TEST_F(Smoke, deviceCompute_createComputeEx) {
 	AMFComputeDevice* device;
-	EXPECT_ANY_THROW(oclComputeFactory->GetDeviceAt(1000, &device));
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute);
+}
+
+TEST_F(Smoke, programs_registerKernelSource) {
+	AMFPrograms* program;
+	factory->GetPrograms(&program);
+	AMF_KERNEL_ID kernel = 0;
+	const char* kernel_src = "\n" \
+		"__kernel void square2( __global float* input, __global float* output, \n" \
+		" const unsigned int count) {            \n" \
+		" int i = get_global_id(0);              \n" \
+		" if(i < count) \n" \
+		" output[i] = input[i] * input[i]; \n" \
+		"}                     \n";
+	program->RegisterKernelSource(&kernel, L"kernelIDName", "square2", strlen(kernel_src), (amf_uint8*)kernel_src, NULL);
+	AMFComputeKernelPtr pKernel;
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	pCompute->GetKernel(kernel, &pKernel);
+	EXPECT_TRUE(pKernel);
+}
+//TODO: Add kernel files
+TEST_F(Smoke, DISABLED_programs_registerKernelSourceFile) {
+	AMFPrograms* program;
+	factory->GetPrograms(&program);
+	AMF_KERNEL_ID kernel = 0;
+	const char* kernel_src = "\n" \
+		"__kernel void square2( __global float* input, __global float* output, \n" \
+		" const unsigned int count) {            \n" \
+		" int i = get_global_id(0);              \n" \
+		" if(i < count) \n" \
+		" output[i] = input[i] * input[i]; \n" \
+		"}                     \n";
+	program->RegisterKernelSource(&kernel, L"kernelIDName", "square2", strlen(kernel_src), (amf_uint8*)kernel_src, NULL);
+	EXPECT_TRUE(kernel);
+}
+
+TEST_F(Smoke, DISABLED_programs_registerKernelBinary) {
+	AMFPrograms* program;
+	factory->GetPrograms(&program);
+	AMF_KERNEL_ID kernel = 0;
+	const char* kernel_src = "\n" \
+		"__kernel void square2( __global float* input, __global float* output, \n" \
+		" const unsigned int count) {            \n" \
+		" int i = get_global_id(0);              \n" \
+		" if(i < count) \n" \
+		" output[i] = input[i] * input[i]; \n" \
+		"}                     \n";
+	program->RegisterKernelSource(&kernel, L"kernelIDName", "square2", strlen(kernel_src), (amf_uint8*)kernel_src, NULL);
+	EXPECT_TRUE(kernel);
+}
+
+TEST_F(Smoke, DISABLED_compute_getMemoryType) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_getNativeContext) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetNativeContext());
+}
+
+TEST_F(Smoke, DISABLED_compute_getNativeDeviceID) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_getNativeCommandQueue) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_getKernel) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_putSyncPoint) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_flushQueue) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_finishQueue) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_fillPlane) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_fillBuffer) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_convertPlaneToBuffer) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_copyBuffer) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_copyPlane) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_copyBufferToHost) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_copyBufferFromHost) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_copyPlaneToHost) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_copyPlaneFromHost) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
+}
+
+TEST_F(Smoke, DISABLED_compute_convertPlaneToPlane) {
+	AMFComputeDevice* device;
+	oclComputeFactory->GetDeviceAt(0, &device);
+	AMFComputePtr pCompute;
+	device->CreateComputeEx(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetMemoryType());
 }
