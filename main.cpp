@@ -140,7 +140,7 @@ TEST_F(Smoke, programs_registerKernelSource) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
-	device->CreateComputeEx(nullptr, &pCompute);
+	device->CreateCompute(nullptr, &pCompute);
 	pCompute->GetKernel(kernel, &pKernel);
 	EXPECT_TRUE(pKernel);
 }
@@ -175,52 +175,66 @@ TEST_F(Smoke, DISABLED_programs_registerKernelBinary) {
 	EXPECT_TRUE(kernel);
 }
 
-TEST_F(Smoke, DISABLED_compute_getMemoryType) {
+TEST_F(Smoke, compute_getMemoryType) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
-	device->CreateComputeEx(nullptr, &pCompute);
+	device->CreateCompute(nullptr, &pCompute);
 	EXPECT_TRUE(pCompute->GetMemoryType());
 }
 
-TEST_F(Smoke, DISABLED_compute_getNativeContext) {
+TEST_F(Smoke, compute_getNativeContext) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
-	device->CreateComputeEx(nullptr, &pCompute);
+	device->CreateCompute(nullptr, &pCompute);
 	EXPECT_TRUE(pCompute->GetNativeContext());
 }
 
-TEST_F(Smoke, DISABLED_compute_getNativeDeviceID) {
+TEST_F(Smoke, compute_getNativeDeviceID) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
-	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	device->CreateCompute(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetNativeDeviceID());
 }
 
-TEST_F(Smoke, DISABLED_compute_getNativeCommandQueue) {
+TEST_F(Smoke, compute_getNativeCommandQueue) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
-	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	device->CreateCompute(nullptr, &pCompute);
+	EXPECT_TRUE(pCompute->GetNativeCommandQueue());
 }
 
-TEST_F(Smoke, DISABLED_compute_getKernel) {
+TEST_F(Smoke, compute_getKernel) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
-	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	AMFPrograms* program;
+	factory->GetPrograms(&program);
+	AMF_KERNEL_ID kernel = 0;
+	const char* kernel_src = "\n" \
+		"__kernel void square2( __global float* input, __global float* output, \n" \
+		" const unsigned int count) {            \n" \
+		" int i = get_global_id(0);              \n" \
+		" if(i < count) \n" \
+		" output[i] = input[i] * input[i]; \n" \
+		"}                     \n";
+	program->RegisterKernelSource(&kernel, L"kernelIDName", "square2", strlen(kernel_src), (amf_uint8*)kernel_src, NULL);
+	amf::AMFComputeKernelPtr pKernel;
+	pCompute->GetKernel(kernel, &pKernel);
+	EXPECT_TRUE(pKernel);
 }
 
-TEST_F(Smoke, DISABLED_compute_putSyncPoint) {
+TEST_F(Smoke, compute_putSyncPoint) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
 	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	AMFComputeSyncPointPtr sync;
+	pCompute->PutSyncPoint(&sync);
+	EXPECT_TRUE(sync);
 }
 
 TEST_F(Smoke, DISABLED_compute_flushQueue) {
