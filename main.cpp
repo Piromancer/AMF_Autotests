@@ -237,20 +237,20 @@ TEST_F(Smoke, compute_putSyncPoint) {
 	EXPECT_TRUE(sync);
 }
 
-TEST_F(Smoke, DISABLED_compute_flushQueue) {
+TEST_F(Smoke, compute_flushQueue) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
 	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	EXPECT_NO_THROW(pCompute->FlushQueue());
 }
 
-TEST_F(Smoke, DISABLED_compute_finishQueue) {
+TEST_F(Smoke, compute_finishQueue) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
 	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	EXPECT_NO_THROW(pCompute->FinishQueue());
 }
 
 TEST_F(Smoke, DISABLED_compute_fillPlane) {
@@ -258,7 +258,13 @@ TEST_F(Smoke, DISABLED_compute_fillPlane) {
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
 	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	AMFSurfacePtr surface;
+	context1->AllocSurface(AMF_MEMORY_OPENCL, AMF_SURFACE_RGBA, 2, 2, &surface);
+	AMFPlanePtr plane = surface->GetPlane(AMF_PLANE_PACKED);
+	amf_size origin[3] = { 0, 0, 0 };
+	amf_size region[3] = { 1, 1, 0 };
+	float color[4] = { 1, 1, 0, 0 };
+	EXPECT_NO_THROW(pCompute->FillPlane(plane, origin, region, color));
 }
 
 TEST_F(Smoke, DISABLED_compute_fillBuffer) {
@@ -269,14 +275,20 @@ TEST_F(Smoke, DISABLED_compute_fillBuffer) {
 	EXPECT_TRUE(pCompute->GetMemoryType());
 }
 
-TEST_F(Smoke, DISABLED_compute_convertPlaneToBuffer) {
+TEST_F(Smoke, compute_convertPlaneToBuffer) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
 	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	AMFSurfacePtr surface;
+	context1->AllocSurface(AMF_MEMORY_OPENCL, AMF_SURFACE_RGBA, 2, 2, &surface);
+	AMFPlanePtr plane = surface->GetPlane(AMF_PLANE_PACKED);
+	AMFBufferPtr buffer;
+	pCompute->ConvertPlaneToBuffer(plane, &buffer);
+	EXPECT_TRUE(buffer);
 }
 
+//TODO make those tests work properly
 TEST_F(Smoke, DISABLED_compute_copyBuffer) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
@@ -285,12 +297,20 @@ TEST_F(Smoke, DISABLED_compute_copyBuffer) {
 	EXPECT_TRUE(pCompute->GetMemoryType());
 }
 
-TEST_F(Smoke, DISABLED_compute_copyPlane) {
+TEST_F(Smoke, compute_copyPlane) {
 	AMFComputeDevice* device;
 	oclComputeFactory->GetDeviceAt(0, &device);
 	AMFComputePtr pCompute;
 	device->CreateComputeEx(nullptr, &pCompute);
-	EXPECT_TRUE(pCompute->GetMemoryType());
+	AMFSurfacePtr surface;
+	context1->AllocSurface(AMF_MEMORY_OPENCL, AMF_SURFACE_RGBA, 2, 2, &surface);
+	AMFPlanePtr plane = surface->GetPlane(AMF_PLANE_PACKED);
+	AMFPlanePtr plane2;
+	amf_size origin[3] = { 0, 0, 0 };
+	amf_size region[3] = { 1, 1, 0 };
+	float color[4] = { 1, 1, 0, 0 };
+	pCompute->CopyPlane(plane, origin, region, plane2, origin);
+	EXPECT_TRUE(plane2);
 }
 
 TEST_F(Smoke, DISABLED_compute_copyBufferToHost) {
