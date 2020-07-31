@@ -41,4 +41,8 @@ chrono::time_point<chrono::system_clock> initiateTestLog();
 void terminateTestLog(chrono::time_point<chrono::system_clock> startTime);
 
 void terminateTestSuiteLog();
+
+int allocationHook(int allocType, void* userData, std::size_t size, int blockType, long requestNumber,
+	const unsigned char* filename, int lineNumber);
+
 #endif
