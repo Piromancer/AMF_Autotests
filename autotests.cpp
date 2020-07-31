@@ -15,8 +15,21 @@ uint32_t AllocationMetrics::CurrentPointers() {
 };
 
 TestsInformation testsInfo;
-AllocationMetrics memoryUsage; 
+AllocationMetrics memoryUsage;
 ofstream logFile;
+
+int allocationHook(int allocType, void* userData, std::size_t size, int blockType, long requestNumber,
+	const unsigned char* filename, int lineNumber) {
+	if (allocType == _HOOK_ALLOC) {
+		memoryUsage.totalAllocated += size;
+		memoryUsage.totalPointersMade++;
+	}
+	else if (allocType == _HOOK_FREE){
+		memoryUsage.totalFreed += size;
+		memoryUsage.totalPointersMade--;
+	}
+	return 0;
+}
 
 void* operator new(size_t size) {
 	memoryUsage.totalAllocated += size;
